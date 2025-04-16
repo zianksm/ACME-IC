@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "ACME-IC-backend": {
+      "candid": "src/ACME-IC-backend/ACME-IC-backend.did",
+      "package": "ACME-IC-backend",
+      "type": "rust"
+    },
+    "ACME-IC-frontend": {
+      "dependencies": [
+        "ACME-IC-backend"
+      ],
+      "source": [
+        "src/ACME-IC-frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "ACME-IC-frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/ACME-IC-backend"
+]
+resolver = "2"

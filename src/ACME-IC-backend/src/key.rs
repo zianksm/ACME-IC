@@ -5,7 +5,7 @@ use ic_cdk::api::management_canister::ecdsa::{
 };
 use k256::{elliptic_curve::PublicKey, Secp256k1};
 use tiny_keccak::{Hasher, Keccak};
-use x509_cert::spki;
+use x509_cert::{builder::Profile, spki};
 
 enum EcdsaKeyIds {
     #[allow(unused)]
@@ -31,11 +31,11 @@ impl EcdsaKeyIds {
 }
 
 #[derive(Clone, Debug)]
-pub struct AcmeSigningKey {
+pub struct AcmeKey {
     domains: Vec<String>,
 }
 
-impl AcmeSigningKey {
+impl AcmeKey {
     pub fn new(domains: Vec<String>) -> Self {
         Self { domains }
     }
@@ -69,7 +69,7 @@ impl spki::EncodePublicKey for AcmeVerifyingKey {
     }
 }
 
-impl signature::Keypair for AcmeSigningKey {
+impl signature::Keypair for AcmeKey {
     type VerifyingKey = AcmeVerifyingKey;
 
     fn verifying_key(&self) -> Self::VerifyingKey {
@@ -88,12 +88,36 @@ impl signature::Keypair for AcmeSigningKey {
             *pub_key_clone.borrow_mut() = response;
         };
 
-        let pub_key = Rc::into_inner(pub_key).unwrap().into_inner();
-
         ic_cdk::spawn(fut);
+
+        let pub_key = Rc::into_inner(pub_key).unwrap().into_inner();
 
         let pub_key = k256::PublicKey::from_sec1_bytes(&pub_key.public_key).unwrap();
 
         AcmeVerifyingKey(pub_key)
+    }
+}
+
+pub struct TlsCertificate {
+    key: AcmeKey,
+}
+
+impl TlsCertificate {
+    pub fn root() -> Self {
+        Self {
+            key: AcmeKey::new(vec![]),
+        }
+    }
+
+    pub fn profile(&self) -> Profile {
+        todo!()
+    }
+
+    pub fn build_leaf() -> Self {
+        todo!()
+    }
+
+    pub fn build_root() -> Self {
+        todo!()
     }
 }

@@ -12,3 +12,4 @@ crate-type = ["cdylib"]
 candid = "0.10"
 ic-cdk = "0.17"
 ic-cdk-timers = "0.11" # Feel free to remove this dependency if you don't need timers
+x509-cert = { version = "0.2.5", features = ["signature"] }

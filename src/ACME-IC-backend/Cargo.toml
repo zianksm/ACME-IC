@@ -10,7 +10,14 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid = "0.10"
+getrandom = { version = "0.2.15", features = ["custom"] }
 ic-cdk = "0.17"
 ic-cdk-timers = "0.11" # Feel free to remove this dependency if you don't need timers
+ic-stable-structures = "0.6.8"
+k256 = { version = "0.13.4", features = ["ecdsa"] }
 signature = { version = "2.2.0", features = ["alloc"] }
+tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 x509-cert = { version = "0.2.5", features = ["builder", "signature"] }
+
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']

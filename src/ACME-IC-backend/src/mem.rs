@@ -39,11 +39,11 @@ impl Mem {
         self.mgr.get(id)
     }
 
-    fn _is_unique(&self, id: MemoryId) ->bool{
+    // fn _is_unique(&self, id: MemoryId) ->bool{
 
-    }
+    // }
 
-    fn _register()
+    // fn _register()
 
     pub fn init() -> Self {
         let mgr = MemoryManager::init(DefaultMemoryImpl::default());

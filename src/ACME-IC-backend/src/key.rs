@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, str::FromStr, sync::Arc};
+use std::{cell::RefCell, rc::Rc, str::FromStr, sync::Arc, time::{Duration, SystemTime}};
 
 use ic_cdk::api::management_canister::ecdsa::{
     self, ecdsa_public_key, sign_with_ecdsa, EcdsaCurve, EcdsaKeyId, EcdsaPublicKeyResponse,
@@ -6,10 +6,12 @@ use ic_cdk::api::management_canister::ecdsa::{
 use ic_stable_structures::Storable;
 use k256::{elliptic_curve::PublicKey, Secp256k1};
 use tiny_keccak::{Hasher, Keccak};
-use x509_cert::{builder::Profile, certificate::CertificateInner, der::Encode, name::Name, spki};
+use x509_cert::{builder::{CertificateBuilder, Profile}, certificate::CertificateInner, der::{asn1::GeneralizedTime, DateTime, Encode}, name::Name, serial_number::SerialNumber, spki, time::{Time, Validity}};
 
 const ROOT_NAME: &'static str = "CN=IC ENCRYPT";
-const ROOT_SERIAL_NUMBER: u128 = 0;
+const ROOT_SERIAL_NUMBER: u64 = 0;
+/// 1 year in nanoseconds. This does not take into account the extra 1 day in a leap year
+const ONE_YEAR_VALIDITY_NANOS:u64 = 31536000000000000 ;
 
 enum EcdsaKeyIds {
     #[allow(unused)]
@@ -37,11 +39,11 @@ impl EcdsaKeyIds {
 #[derive(Clone, Debug)]
 pub struct AcmeKey {
     domain: Name,
-    serial_number: u128,
+    serial_number: u64,
 }
 
 impl AcmeKey {
-    pub fn new(domain: Name, serial_number: u128) -> Self {
+    pub fn new(domain: Name, serial_number: u64) -> Self {
         Self {
             domain,
             serial_number,
@@ -114,13 +116,15 @@ pub struct Certificate {
 
 impl Certificate {
     pub fn root() -> Self {
+        let name = Name::from_str(ROOT_NAME).unwrap();
+
         Self {
-            key: AcmeKey::new(vec![], ROOT_SERIAL_NUMBER),
+            key: AcmeKey::new(name, ROOT_SERIAL_NUMBER),
         }
     }
 
     pub fn root_name() -> Name {
-        Name::from_str(ROOT_NAME)
+        Name::from_str(ROOT_NAME).unwrap()
     }
 
     pub fn profile(&self) -> Profile {
@@ -128,7 +132,7 @@ impl Certificate {
             return Profile::Root;
         }
 
-        // we dont support subCA certificate for now
+        // TODO we dont support subCA certificate for now
         Profile::Leaf {
             issuer: Self::root_name(),
             enable_key_agreement: true,
@@ -136,7 +140,15 @@ impl Certificate {
         }
     }
 
-    pub fn build_leaf() -> Self {
+    pub fn build_leaf(self) -> CertificateInner {
+        let profile = self.profile();
+        let serial_number = SerialNumber::from(self.key.serial_number);
+        let validity = Self::generate_validity_info();
+        let subject = self.key.domain;
+        // TODO generate correct public key info
+
+
+        CertificateBuilder::new(profile, serial_number, validity, subject, subject_public_key_info, cert_signer)
         // get serial number from somewhere
         // determine vailidity -> findout how, hardcode to 1 year for now
         // subject is the acme key domain
@@ -144,7 +156,20 @@ impl Certificate {
         todo!()
     }
 
+    fn generate_validity_info() -> Validity {
+        let now = Duration::from_nanos(ic_cdk::api::time());
+        let expiry = now + Duration::from_nanos(ONE_YEAR_VALIDITY_NANOS);
+    
+        let not_before = Time::GeneralTime(GeneralizedTime::from_unix_duration(now).unwrap());
+        let not_after = Time::GeneralTime(GeneralizedTime::from_unix_duration(expiry).unwrap());
+    
+        let validity = Validity { not_before, not_after };
+        validity
+    }
+    
+
     pub fn build_root() -> Self {
         todo!()
     }
 }
+

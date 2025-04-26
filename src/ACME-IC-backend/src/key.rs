@@ -32,7 +32,8 @@ use x509_cert::{
 };
 
 // TODO proper CNAME
-const ROOT_NAME: &'static str = "CN=IC ENCRYPT";
+#[cfg(feature = "local")]
+const ROOT_NAME: &'static str = "CN=ic.encrypt.icp";
 const ROOT_SERIAL_NUMBER: u64 = 0;
 /// 1 year in nanoseconds. This does not take into account the extra 1 day in a leap year
 const ONE_YEAR_VALIDITY_NANOS: u64 = 31536000000000000;
@@ -74,6 +75,12 @@ pub struct AcmeKey {
 }
 
 impl AcmeKey {
+    pub fn new_root() -> Self {
+        Self {
+            domain: Name::from_str(ROOT_NAME).unwrap(),
+            serial_number: ROOT_SERIAL_NUMBER,
+        }
+    }
     pub fn new(domain: Name, serial_number: u64) -> Self {
         Self {
             domain,
@@ -217,12 +224,14 @@ pub struct Certificate {
 }
 
 impl Certificate {
-    pub fn root() -> Self {
-        let name = Name::from_str(ROOT_NAME).unwrap();
+    pub fn new(key: AcmeKey) -> Self {
+        Self { key }
+    }
 
-        Self {
-            key: AcmeKey::new(name, ROOT_SERIAL_NUMBER),
-        }
+    pub fn root() -> Self {
+        let key = AcmeKey::new_root();
+
+        Self { key }
     }
 
     pub fn root_name() -> Name {
@@ -242,7 +251,7 @@ impl Certificate {
         }
     }
 
-    pub fn build_leaf(self) -> String {
+    pub fn build(self) -> String {
         let verifying_key = self.key.verifying_key();
 
         let profile = self.profile();
@@ -284,7 +293,7 @@ impl Certificate {
         validity
     }
 
-    pub fn build_root() -> Self {
-        todo!()
+    pub fn build_root() -> String {
+        Self::root().build()
     }
 }

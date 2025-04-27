@@ -1,3 +1,4 @@
+mod cert_manager;
 mod key;
 mod mem;
 

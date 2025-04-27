@@ -1,9 +1,35 @@
 use std::{any::Any, cell::RefCell, rc::Rc};
 
+use crate::cert_manager::CertificateManager;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableMinHeap,
 };
+
+macro_rules! mem_id {
+    (
+        $($rest:ty;)*) => {
+        mem_id!(@internal 0_u8; $($rest;)*);
+    };
+
+
+
+    (@internal $counter:expr; $ident:ty; $($rest:ty;)*) => {
+        impl StorageItem for $ident {
+            const ID: u8= $counter ;
+        }
+
+        mem_id!(@internal $counter + 1; $($rest;)*);
+
+
+    };
+
+    (@internal $counter:expr;) => {
+        pub const TOTAL_MEMORY_ID_USED: u8 = $counter;
+     };
+    }
+
+mem_id!(Mem; CertificateManager;);
 
 pub trait StorageItem {
     const ID: u8;
@@ -18,10 +44,6 @@ pub trait StorageRegistry {
 }
 
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;
-
-impl StorageItem for Mem {
-    const ID: u8 = 0;
-}
 
 pub struct Mem {
     mgr: MemoryManager<DefaultMemoryImpl>,

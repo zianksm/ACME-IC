@@ -1,6 +1,7 @@
 mod cert_manager;
 mod key;
 mod mem;
+mod handler;
 
 #[ic_cdk::query]
 fn greet(name: String) -> String {
@@ -15,3 +16,5 @@ getrandom::register_custom_getrandom!(always_fail);
 pub fn always_fail(_buf: &mut [u8]) -> Result<(), getrandom::Error> {
     Err(getrandom::Error::UNSUPPORTED)
 }
+
+

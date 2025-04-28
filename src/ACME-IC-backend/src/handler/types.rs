@@ -54,12 +54,10 @@ pub struct JwsHeader {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct JwsObject<T> {
+pub struct JwsRequestObject {
     pub protected: String, // Base64url-encoded header
     pub payload: String,   // Base64url-encoded payload
     pub signature: String, // Base64url-encoded signature
-    #[serde(skip)]
-    pub decoded_payload: Option<T>, // Not part of JSON, for convenience
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -214,82 +212,6 @@ pub struct StoredAccount {
     pub initial_ip: String,
     pub last_seen_ip: String,
     pub last_seen_at: String,
-}
-
-// Server-side order management
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct StoredOrder {
-    pub id: String,
-    pub account_id: String,
-    pub status: String,
-    pub identifiers: Vec<Identifier>,
-    pub expires: String,
-    pub created_at: String,
-    pub authorization_ids: Vec<String>,
-    pub certificate_id: Option<String>,
-}
-
-// Server-side authorization management
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct StoredAuthorization {
-    pub id: String,
-    pub order_id: String,
-    pub identifier: Identifier,
-    pub status: String,
-    pub expires: String,
-    pub created_at: String,
-    pub challenge_ids: Vec<String>,
-    pub wildcard: bool,
-}
-
-// Server-side challenge management
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct StoredChallenge {
-    pub id: String,
-    pub authorization_id: String,
-    pub r#type: String,
-    pub status: String,
-    pub token: String,
-    pub validated: Option<String>,
-    pub error: Option<Error>,
-    pub attempts: u8,
-    pub created_at: String,
-}
-
-// Server-side certificate management
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct StoredCertificate {
-    pub id: String,
-    pub account_id: String,
-    pub order_id: String,
-    pub status: String, // "valid" or "revoked"
-    pub domains: Vec<String>,
-    pub not_before: String,
-    pub not_after: String,
-    pub pem: String,
-    pub der: String,
-    pub issued_at: String,
-    pub revoked_at: Option<String>,
-    pub revocation_reason: Option<u8>,
-}
-
-// Cryptographic utility types
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Ed25519KeyPair {
-    pub private_key: Vec<u8>, // 32 bytes
-    pub public_key: Vec<u8>,  // 32 bytes
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Secp256k1KeyPair {
-    pub private_key: Vec<u8>, // 32 bytes
-    pub public_key: Vec<u8>,  // 33 bytes (compressed) or 65 bytes (uncompressed)
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum KeyPair {
-    Ed25519(Ed25519KeyPair),
-    Secp256k1(Secp256k1KeyPair),
 }
 
 // CSR components

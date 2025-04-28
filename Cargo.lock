@@ -6,6 +6,7 @@ version = 4
 name = "ACME-IC-backend"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "candid",
  "getrandom",
  "ic-cdk",

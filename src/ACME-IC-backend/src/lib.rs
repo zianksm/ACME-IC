@@ -1,7 +1,7 @@
 mod cert_manager;
+mod handler;
 mod key;
 mod mem;
-mod handler;
 
 #[ic_cdk::query]
 fn greet(name: String) -> String {
@@ -17,4 +17,9 @@ pub fn always_fail(_buf: &mut [u8]) -> Result<(), getrandom::Error> {
     Err(getrandom::Error::UNSUPPORTED)
 }
 
-
+#[ic_cdk::update]
+pub fn http_request_update(
+    req: ic_http_certification::HttpUpdateRequest,
+) -> ic_http_certification::HttpResponse {
+    todo!()
+}

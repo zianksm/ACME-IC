@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 // Basic types shared across multiple endpoints
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Identifier {
-    pub r#type: String,  // Using r# prefix for the 'type' keyword
+    pub r#type: String, // Using r# prefix for the 'type' keyword
     pub value: String,
 }
 
@@ -41,7 +41,7 @@ pub struct JwkPublicKey {
     pub kty: String,
     pub crv: String,
     pub x: String,
-    pub y: Option<String>,  // Only used for ES256K
+    pub y: Option<String>, // Only used for ES256K
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -55,11 +55,11 @@ pub struct JwsHeader {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct JwsObject<T> {
-    pub protected: String,  // Base64url-encoded header
-    pub payload: String,    // Base64url-encoded payload
-    pub signature: String,  // Base64url-encoded signature
+    pub protected: String, // Base64url-encoded header
+    pub payload: String,   // Base64url-encoded payload
+    pub signature: String, // Base64url-encoded signature
     #[serde(skip)]
-    pub decoded_payload: Option<T>,  // Not part of JSON, for convenience
+    pub decoded_payload: Option<T>, // Not part of JSON, for convenience
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -75,7 +75,7 @@ pub struct Account {
     pub contact: Option<Vec<String>>,
     pub terms_of_service_agreed: bool,
     pub orders: String,
-    pub created_at: Option<String>,  // ISO 8601 timestamp
+    pub created_at: Option<String>, // ISO 8601 timestamp
     pub initial_ip: Option<String>,
 }
 
@@ -83,8 +83,8 @@ pub struct Account {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NewOrderRequest {
     pub identifiers: Vec<Identifier>,
-    pub not_before: Option<String>,  // ISO 8601 timestamp
-    pub not_after: Option<String>,   // ISO 8601 timestamp
+    pub not_before: Option<String>, // ISO 8601 timestamp
+    pub not_after: Option<String>,  // ISO 8601 timestamp
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -104,7 +104,7 @@ pub struct Challenge {
     pub url: String,
     pub token: String,
     pub status: String,
-    pub validated: Option<String>,  // ISO 8601 timestamp
+    pub validated: Option<String>, // ISO 8601 timestamp
     pub error: Option<Error>,
 }
 
@@ -120,14 +120,14 @@ pub struct Authorization {
 // Finalize order endpoint types
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FinalizeRequest {
-    pub csr: String,  // Base64url-encoded CSR
+    pub csr: String, // Base64url-encoded CSR
 }
 
 // Revoke certificate endpoint types
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RevocationRequest {
-    pub certificate: String,  // Base64url-encoded DER certificate
-    pub reason: Option<u8>,   // RFC 5280 revocation reason code
+    pub certificate: String, // Base64url-encoded DER certificate
+    pub reason: Option<u8>,  // RFC 5280 revocation reason code
 }
 
 // Key authorization components

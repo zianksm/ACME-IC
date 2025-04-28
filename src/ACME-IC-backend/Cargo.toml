@@ -9,6 +9,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
 candid = "0.10"
 getrandom = { version = "0.2.15", features = ["custom"] }
 ic-cdk = "0.17"

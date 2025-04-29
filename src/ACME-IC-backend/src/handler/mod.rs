@@ -164,6 +164,8 @@ pub trait Handler<'d> {
     fn validate_raw_request(req: &Self::RawRequest) -> R<Self::RequestPayload> {
         let raw = req.req_method().map_err(GenericError::bad_request)?;
 
+        // TODO  verify jwk
+
         serde_json::from_slice::<Self::RequestPayload>(req.raw_body())
             .map_err(|_| anyhow!("unexpected payload encopuntered"))
             .map_err(GenericError::bad_request)

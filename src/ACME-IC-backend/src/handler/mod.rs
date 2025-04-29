@@ -139,6 +139,10 @@ impl GenericError {
             code: StatusCode::BAD_REQUEST,
         }
     }
+
+    fn default_bad_request() -> Self {
+        Self::bad_request(anyhow!("failed to deserialize incoming request"))
+    }
 }
 
 pub struct HandleOutcome<Data> {
@@ -159,11 +163,10 @@ pub trait Handler<'d> {
 
     fn validate_raw_request(req: &Self::RawRequest) -> R<Self::RequestPayload> {
         let raw = req.req_method().map_err(GenericError::bad_request)?;
-        Ok(
-            serde_json::from_slice::<Self::RequestPayload>(req.raw_body())
-                .map_err(|_| anyhow!("unexpected payload encopuntered"))
-                .map_err(GenericError::bad_request)?,
-        )
+
+        serde_json::from_slice::<Self::RequestPayload>(req.raw_body())
+            .map_err(|_| anyhow!("unexpected payload encopuntered"))
+            .map_err(GenericError::bad_request)
     }
 
     fn accept(req: Self::RawRequest) -> <Self::RawRequest as RequestMarker<'d>>::Response {
@@ -188,13 +191,16 @@ pub trait Handler<'d> {
         let body = serde_json::to_vec_pretty(&data.data).unwrap();
 
         // TODO: HEADERS
-        HttpResponseBuilder::new()
+        let resp = HttpResponseBuilder::new()
             .with_status_code(data.status_code)
             .with_body(body)
             .with_upgrade(false)
             .build();
-        todo!()
+
+        <Self::RawRequest as RequestMarker<'d>>::Response::from_base(resp)
     }
 
     fn handle(req: Self::RequestPayload) -> R<HandleOutcome<Self::ResponsePayload>>;
+
+    fn skip_jwk_verification() -> bool;
 }

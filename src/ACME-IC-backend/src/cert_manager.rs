@@ -3,10 +3,7 @@ use std::ops::Add;
 use ic_stable_structures::StableCell;
 use x509_cert::name::Name;
 
-use crate::{
-    key::AcmeKey,
-    mem::{self, Memory},
-};
+use crate::{key::AcmeKey, mem::Memory};
 
 pub struct CertificateManager {
     serial_number_registry: StableCell<u64, Memory>,

@@ -1,10 +1,4 @@
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    str::FromStr,
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
+use std::{cell::RefCell, rc::Rc, str::FromStr, time::Duration};
 
 use ic_cdk::api::management_canister::ecdsa::{
     self, ecdsa_public_key, sign_with_ecdsa, EcdsaCurve, EcdsaKeyId, EcdsaPublicKeyResponse,
@@ -19,11 +13,10 @@ use signature::Keypair;
 use tiny_keccak::{Hasher, Keccak};
 use x509_cert::{
     builder::{Builder, CertificateBuilder, Profile},
-    certificate::CertificateInner,
     der::{
         asn1::{BitString, GeneralizedTime},
         pem::LineEnding,
-        DateTime, Encode, EncodePem,
+        Encode, EncodePem,
     },
     name::Name,
     serial_number::SerialNumber,
@@ -33,7 +26,7 @@ use x509_cert::{
 
 // TODO proper CNAME
 #[cfg(feature = "local")]
-const ROOT_NAME: &'static str = "CN=ic.encrypt.icp";
+const ROOT_NAME: &str = "CN=ic.encrypt.icp";
 const ROOT_SERIAL_NUMBER: u64 = 0;
 /// 1 year in nanoseconds. This does not take into account the extra 1 day in a leap year
 const ONE_YEAR_VALIDITY_NANOS: u64 = 31536000000000000;
@@ -109,7 +102,7 @@ impl AcmeKey {
         self.domain.is_empty()
     }
 
-    pub fn hash_mesage(msg: &[u8], mut buff: &mut [u8]) {
+    pub fn hash_mesage(msg: &[u8], buff: &mut [u8]) {
         let mut hasher = Keccak::v512();
 
         hasher.update(msg);
@@ -285,12 +278,10 @@ impl Certificate {
         let not_before = Time::GeneralTime(GeneralizedTime::from_unix_duration(now).unwrap());
         let not_after = Time::GeneralTime(GeneralizedTime::from_unix_duration(expiry).unwrap());
 
-        let validity = Validity {
+        Validity {
             not_before,
             not_after,
-        };
-
-        validity
+        }
     }
 
     pub fn build_root() -> String {

@@ -1,4 +1,10 @@
-use serde::{Deserialize, Serialize};
+use anyhow::anyhow;
+use base64::Engine;
+use k256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey, PublicKey};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use signature::Verifier;
+
+use super::{GenericError, R};
 
 // Basic types shared across multiple endpoints
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -44,20 +50,86 @@ pub struct JwkPublicKey {
     pub y: Option<String>, // Only used for ES256K
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct JwsHeader {
+/// raw ECDSA(secp256k1) public key in der format
+#[derive(Debug, Clone)]
+pub struct Es256kPublicKey(pub PublicKey);
+
+impl<'de> Deserialize<'de> for Es256kPublicKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw_buf = Vec::<u8>::deserialize(deserializer)?;
+
+        Self::from_public_key_der(raw_buf.as_slice())
+            .map_err(|e| serde::de::Error::custom(e.to_string()))
+    }
+}
+impl Es256kPublicKey {
+    pub fn from_public_key_der(slice: &[u8]) -> anyhow::Result<Self> {
+        let p = PublicKey::from_public_key_der(slice)
+            .map_err(|_| anyhow!("failed to deseralize public key"))?;
+
+        anyhow::Ok(Self(p))
+    }
+    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> bool {
+        let signature =
+            k256::ecdsa::Signature::try_from(sig).expect("failed to deserialize signature");
+        
+        let verifying_key = VerifyingKey::from(&self.0);
+        
+        match verifying_key.verify(msg, &signature) {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub enum RawJwkPublicKey {
+    ES256K(Es256kPublicKey),
+    Ed25519,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct JwkHeader {
     pub alg: String,
     pub url: String,
     pub nonce: String,
     pub kid: Option<String>,
-    pub jwk: Option<JwkPublicKey>,
+    // slight deviation from the RFC, we will use the raw bytes here instead for simplicity sake now
+    pub jwk: Option<RawJwkPublicKey>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct JwsRequestObject {
+pub struct GeneralRequest {
     pub protected: String, // Base64url-encoded header
     pub payload: String,   // Base64url-encoded payload
     pub signature: String, // Base64url-encoded signature
+}
+
+impl GeneralRequest {
+    fn deserialize_field<T: DeserializeOwned>(slice: &[u8]) -> R<T> {
+        let raw = Self::decode_base64(slice)?;
+        serde_json::from_slice(raw.as_ref()).map_err(|_| GenericError::default_bad_request())
+    }
+
+    fn decode_base64(slice: &[u8]) -> R<Vec<u8>> {
+        base64::prelude::BASE64_STANDARD
+            .decode(slice)
+            .map_err(|_| GenericError::default_bad_request())
+    }
+    pub fn jwk_header(&self) -> R<JwkHeader> {
+        Self::deserialize_field::<JwkHeader>(self.protected.as_bytes())
+    }
+
+    pub fn payload<T: DeserializeOwned>(&self) -> R<T> {
+        Self::deserialize_field::<T>(self.payload.as_bytes())
+    }
+
+    pub fn raw_signature(&self) -> R<Vec<u8>> {
+        Self::decode_base64(self.signature.as_bytes())
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

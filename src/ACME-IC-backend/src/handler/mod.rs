@@ -35,8 +35,8 @@ impl Method {
     }
 }
 
-pub trait RequestMarker {
-    type Response: ResponseMarker;
+pub trait RequestMarker<'a> {
+    type Response: ResponseMarker<'a>;
 
     fn raw_body(&self) -> &[u8];
 
@@ -45,13 +45,15 @@ pub trait RequestMarker {
     fn url(&self) -> &str;
 }
 
-pub trait ResponseMarker {
+pub trait ResponseMarker<'a> {
     fn status_code(&self) -> StatusCode;
     fn headers(&self) -> &[HeaderField];
     fn body(&self) -> &[u8];
+
+    fn from_base(resp: RegularResponse<'a>) -> Self;
 }
 
-impl<'a> RequestMarker for UpdateRequest<'a> {
+impl<'a> RequestMarker<'a> for UpdateRequest<'a> {
     type Response = UpdateResponse<'a>;
 
     fn raw_body(&self) -> &[u8] {
@@ -67,7 +69,7 @@ impl<'a> RequestMarker for UpdateRequest<'a> {
     }
 }
 
-impl<'a> ResponseMarker for UpdateResponse<'a> {
+impl<'a> ResponseMarker<'a> for UpdateResponse<'a> {
     fn status_code(&self) -> StatusCode {
         self.status_code()
     }
@@ -79,9 +81,13 @@ impl<'a> ResponseMarker for UpdateResponse<'a> {
     fn body(&self) -> &[u8] {
         self.body()
     }
+
+    fn from_base(resp: RegularResponse<'a>) -> Self {
+        resp.into()
+    }
 }
 
-impl<'a> RequestMarker for RegularRequest<'a> {
+impl<'a> RequestMarker<'a> for RegularRequest<'a> {
     type Response = RegularResponse<'a>;
 
     fn raw_body(&self) -> &[u8] {
@@ -96,7 +102,7 @@ impl<'a> RequestMarker for RegularRequest<'a> {
         self.url()
     }
 }
-impl<'a> ResponseMarker for RegularResponse<'a> {
+impl<'a> ResponseMarker<'a> for RegularResponse<'a> {
     fn status_code(&self) -> StatusCode {
         self.status_code()
     }
@@ -107,6 +113,10 @@ impl<'a> ResponseMarker for RegularResponse<'a> {
 
     fn body(&self) -> &[u8] {
         self.body()
+    }
+
+    fn from_base(resp: RegularResponse<'a>) -> Self {
+        resp
     }
 }
 
@@ -139,15 +149,15 @@ pub trait Handler<'d> {
     const PATH: &'static str;
     const METHOD: Method;
 
-    type RawRequest: RequestMarker;
-    type RequestPayload: serde::Deserialize<'d>;
+    type RawRequest: RequestMarker<'d>;
+    type RequestPayload: serde::de::DeserializeOwned;
     type ResponsePayload: serde::Serialize;
 
-    fn build_error_resp(err: GenericError) -> <Self::RawRequest as RequestMarker>::Response {
+    fn build_error_resp(err: GenericError) -> <Self::RawRequest as RequestMarker<'d>>::Response {
         todo!()
     }
 
-    fn validate_raw_request(req: &'d Self::RawRequest) -> R<Self::RequestPayload> {
+    fn validate_raw_request(req: &Self::RawRequest) -> R<Self::RequestPayload> {
         let raw = req.req_method().map_err(GenericError::bad_request)?;
         Ok(
             serde_json::from_slice::<Self::RequestPayload>(req.raw_body())
@@ -156,23 +166,33 @@ pub trait Handler<'d> {
         )
     }
 
-    fn accept(req: Self::RawRequest) -> <Self::RawRequest as RequestMarker>::Response {
+    fn accept(req: Self::RawRequest) -> <Self::RawRequest as RequestMarker<'d>>::Response {
         match Self::validate_raw_request(&req) {
-            Ok(arg) => Self::handle(arg),
+            Ok(arg) => Self::collapse_resp(Self::handle(arg)),
             Err(e) => Self::build_error_resp(e),
+        }
+    }
+
+    fn collapse_resp(
+        res: R<HandleOutcome<Self::ResponsePayload>>,
+    ) -> <Self::RawRequest as RequestMarker<'d>>::Response {
+        match res {
+            Ok(ok) => Self::build_success_resp(ok),
+            Err(err) => Self::build_error_resp(err),
         }
     }
 
     fn build_success_resp(
         data: HandleOutcome<Self::ResponsePayload>,
-    ) -> <Self::RawRequest as RequestMarker>::Response {
+    ) -> <Self::RawRequest as RequestMarker<'d>>::Response {
         let body = serde_json::to_vec_pretty(&data.data).unwrap();
 
         // TODO: HEADERS
         HttpResponseBuilder::new()
             .with_status_code(data.status_code)
             .with_body(body)
-            .with_upgrade(false);
+            .with_upgrade(false)
+            .build();
         todo!()
     }
 
